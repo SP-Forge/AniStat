@@ -1,10 +1,11 @@
-const Base_URL = "https://api.myanimelist.net/v2/";
+const Base_URL = "http://localhost:3333/api/";
 
 export async function getAnimeById(id: number) {
-  const response = await fetch(`${Base_URL}anime/${id}`, {
-    headers: {
-      "X-MAL-CLIENT-ID": "a0fae499a56feb99c859388e37e840c2",
-    },
-  });
-  return response.json();
+    const response = await fetch(`${Base_URL}getAnimeById/${id}`);
+
+    if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    return response.json();
 }
