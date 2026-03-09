@@ -1,5 +1,8 @@
+/// <reference lib="deno.ns" />
+
 import { Application, Router } from "@oak/oak";
 import { oakCors } from "@tajpouria/cors";
+
 
 export const app = new Application();
 const router = new Router();
