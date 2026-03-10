@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
     "jsr:@oak/commons@1": "1.0.0",
     "jsr:@oak/oak@^17.2.0": "17.2.0",
@@ -12,6 +12,8 @@
     "jsr:@std/media-types@1": "1.1.0",
     "jsr:@std/path@1": "1.0.8",
     "jsr:@tajpouria/cors@^1.2.1": "1.2.1",
+    "npm:@fortawesome/free-solid-svg-icons@^7.2.0": "7.2.0",
+    "npm:@fortawesome/react-fontawesome@^3.2.0": "3.2.0_@fortawesome+fontawesome-svg-core@7.2.0_react@19.2.4",
     "npm:path-to-regexp@^6.3.0": "6.3.0"
   },
   "jsr": {
@@ -67,14 +69,41 @@
     }
   },
   "npm": {
+    "@fortawesome/fontawesome-common-types@7.2.0": {
+      "integrity": "sha512-IpR0bER9FY25p+e7BmFH25MZKEwFHTfRAfhOyJubgiDnoJNsSvJ7nigLraHtp4VOG/cy8D7uiV0dLkHOne5Fhw=="
+    },
+    "@fortawesome/fontawesome-svg-core@7.2.0": {
+      "integrity": "sha512-6639htZMjEkwskf3J+e6/iar+4cTNM9qhoWuRfj9F3eJD6r7iCzV1SWnQr2Mdv0QT0suuqU8BoJCZUyCtP9R4Q==",
+      "dependencies": [
+        "@fortawesome/fontawesome-common-types"
+      ]
+    },
+    "@fortawesome/free-solid-svg-icons@7.2.0": {
+      "integrity": "sha512-YTVITFGN0/24PxzXrwqCgnyd7njDuzp5ZvaCx5nq/jg55kUYd94Nj8UTchBdBofi/L0nwRfjGOg0E41d2u9T1w==",
+      "dependencies": [
+        "@fortawesome/fontawesome-common-types"
+      ]
+    },
+    "@fortawesome/react-fontawesome@3.2.0_@fortawesome+fontawesome-svg-core@7.2.0_react@19.2.4": {
+      "integrity": "sha512-E9Gu1hqd6JussVO26EC4WqRZssXMnQr2ol7ZNWkkFOH8jZUaxDJ9Z9WF9wIVkC+kJGXUdY3tlffpDwEKfgQrQw==",
+      "dependencies": [
+        "@fortawesome/fontawesome-svg-core",
+        "react"
+      ]
+    },
     "path-to-regexp@6.3.0": {
       "integrity": "sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ=="
+    },
+    "react@19.2.4": {
+      "integrity": "sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ=="
     }
   },
   "workspace": {
     "dependencies": [
       "jsr:@oak/oak@^17.2.0",
-      "jsr:@tajpouria/cors@^1.2.1"
+      "jsr:@tajpouria/cors@^1.2.1",
+      "npm:@fortawesome/free-solid-svg-icons@^7.2.0",
+      "npm:@fortawesome/react-fontawesome@^3.2.0"
     ]
   }
 }
