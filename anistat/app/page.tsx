@@ -8,50 +8,62 @@ interface AnimeData {
         large: string;
         medium: string;
     };
+    alternative_titles?: {
+        en: string;
+    };
+    mean?: number;
+}
+
+interface PopularAnimeItem {
+    node: AnimeData;
+    ranking: {
+        rank: number;
+    };
 }
 
 export default function Page() {
-    const [leftAnime, setLeftAnime] = useState<AnimeData | null>(null);
-    const [rightAnime, setRightAnime] = useState<AnimeData | null>(null);
+    const [leftAnime, setLeftAnime] = useState<PopularAnimeItem | null>(null);
+    const [rightAnime, setRightAnime] = useState<PopularAnimeItem | null>(null);
     const [isSpinning, setIsSpinning] = useState(false);
     const [spinSpeed, setSpinSpeed] = useState(0.5);
     const spinTimeoutRef = useRef<number | null>(null);
 
-    async function fetchAnime(excludeId?: number): Promise<AnimeData | null> {
+    async function fetchAnime(): Promise<PopularAnimeItem | null> {
         try {
-            let randomId = Math.floor(Math.random() * 10000) + 1;
+            // Fetch the popular anime list from API
+            const response = await fetch(`http://localhost:3333/api/getAnimesByPopularity`);
             
-            // Make sure we don't get the same ID as the excluded one
-            if (excludeId && randomId === excludeId) {
-                randomId = (randomId % 100) + 1;
-            }
-            
-            const response = await fetch(`http://localhost:3333/api/getAnimeById/${randomId}`);
-            
-            // If the response is not OK (404, 500, etc.), retry with a new ID
             if (!response.ok) {
-                console.log(`Anime ID ${randomId} not found, retrying...`);
-                return fetchAnime(excludeId); // Retry with a new random ID
+                console.log("Failed to fetch anime list, retrying...");
+                return fetchAnime(); // Retry
             }
             
             const data = await response.json();
-            console.log(data);
-            return data;
+            
+            if (!data.data || data.data.length === 0) {
+                console.error("No anime data received");
+                return null;
+            }
+
+            // Pick a random anime from the list
+            const randomIndex = Math.floor(Math.random() * data.data.length);
+            const selectedAnime = data.data[randomIndex];
+            
+            console.log(selectedAnime);
+            return selectedAnime;
         } catch (error) {
             console.error("Error fetching anime:", error);
-            // Retry on error
-            console.log("Retrying...");
-            return fetchAnime(excludeId);
+            return null;
         }
     }
 
     async function handleGetLeftAnime() {
-        const data = await fetchAnime(rightAnime?.id);
+        const data = await fetchAnime();
         if (data) setLeftAnime(data);
     }
 
     async function handleGetRightAnime() {
-        const data = await fetchAnime(leftAnime?.id);
+        const data = await fetchAnime();
         if (data) setRightAnime(data);
     }
 
@@ -71,12 +83,12 @@ export default function Page() {
         }, 1000); 
     }
 
-    // Load both images on mount
+    // Load both images on load
     useEffect(() => {
         async function loadInitialAnime() {
             const left = await fetchAnime();
             setLeftAnime(left);
-            const right = await fetchAnime(left?.id);
+            const right = await fetchAnime();
             setRightAnime(right);
         }
         loadInitialAnime();
@@ -88,14 +100,15 @@ export default function Page() {
                 {leftAnime && (
                     <>
                         <img 
-                            src={leftAnime.main_picture.large} 
-                            alt={leftAnime.title}
+                            src={leftAnime.node.main_picture.large} 
+                            alt={leftAnime.node.alternative_titles?.en || leftAnime.node.title}
                             className="absolute inset-0 w-full h-full object-cover hover:opacity-75"
                         />
                         <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
 
                         <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
-                            {leftAnime.title}
+                            {leftAnime.node.alternative_titles?.en || leftAnime.node.title}
+                            {leftAnime.node.mean ? ` - ${leftAnime.node.mean.toFixed(2)}` : ""}
                         </h2>
                         </div>
                     </>
@@ -107,14 +120,14 @@ export default function Page() {
                 {rightAnime && (
                     <>
                         <img 
-                            src={rightAnime.main_picture.medium} 
-                            alt={rightAnime.title}
-                            className="absolute inset-0 w-full h-full object-cover hover:opacity-75"
+                            src={rightAnime.node.main_picture.large} 
+                            alt={rightAnime.node.alternative_titles?.en || rightAnime.node.title}
+                            className="absolute inset-0 w-full h-full object-cover hover:opacity-75 "
                         />
                         <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
 
                         <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
-                            {rightAnime.title}
+                            {rightAnime.node.alternative_titles?.en || rightAnime.node.title}
                         </h2>
                         </div>
                     </>
