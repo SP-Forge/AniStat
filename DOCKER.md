@@ -36,6 +36,26 @@ docker build -t anistat-app .
 docker run -p 3000:3000 -p 3333:3333 --env-file backend/.env anistat-app
 ```
 
+## Deploying to Render
+
+**IMPORTANT:** Make sure to configure these settings correctly:
+
+1. **Create a new Web Service** in Render
+2. **Connect your GitHub repository**
+3. **Configure the service with these EXACT settings:**
+   - **Environment**: Docker
+   - **Root Directory**: `anistat` ⚠️ **CRITICAL - Must be set to anistat**
+   - **Dockerfile Path**: `Dockerfile` (relative to root directory)
+   - **Docker Build Context Directory**: `.` (relative to root directory)
+
+4. **Add Environment Variable:**
+   - Key: `CLIENT_ID`
+   - Value: Your MyAnimeList API Client ID
+
+5. **Deploy!**
+
+The root directory setting is crucial - without it, Docker will use the wrong package.json file.
+
 ## Stop Services
 ```bash
 docker-compose down
