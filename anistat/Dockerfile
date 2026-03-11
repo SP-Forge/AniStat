@@ -13,7 +13,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 # Copy all source files
@@ -38,7 +38,7 @@ COPY --from=builder /app/backend ./backend
 
 # Cache Deno dependencies
 WORKDIR /app/backend
-RUN deno install --entrypoint main.ts
+RUN deno cache main.ts
 
 # Create startup script
 WORKDIR /app
