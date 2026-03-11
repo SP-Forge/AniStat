@@ -20,8 +20,6 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Exclude backend from frontend build
-RUN rm -rf backend
 
 RUN npm run build
 
@@ -36,8 +34,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy backend files
-COPY backend/ ./backend/
+# Copy backend files from builder
+COPY --from=builder /app/backend ./backend
 
 # Cache Deno dependencies
 WORKDIR /app/backend
@@ -46,8 +44,14 @@ RUN deno install --entrypoint main.ts
 # Create startup script
 WORKDIR /app
 RUN echo '#!/bin/sh' > start.sh && \
+    echo 'set -e' >> start.sh && \
+    echo 'echo "Starting backend on port 3333..."' >> start.sh && \
     echo 'cd /app/backend && deno run --allow-net --allow-env main.ts &' >> start.sh && \
-    echo 'cd /app && node server.js' >> start.sh && \
+    echo 'BACKEND_PID=$!' >> start.sh && \
+    echo 'echo "Backend started with PID $BACKEND_PID"' >> start.sh && \
+    echo 'sleep 2' >> start.sh && \
+    echo 'echo "Starting frontend on port ${PORT:-3000}..."' >> start.sh && \
+    echo 'cd /app && PORT=${PORT:-3000} node server.js' >> start.sh && \
     chmod +x start.sh
 
 EXPOSE 3000 3333
