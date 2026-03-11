@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AnimeData {
     id: number;
@@ -30,15 +31,18 @@ export default function Page() {
     const [showRightMean, setShowRightMean] = useState(false);
     const [score, setScore] = useState(0);
     const [showModal, setShowModal] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
+    const [animatingAnime, setAnimatingAnime] = useState<PopularAnimeItem | null>(null);
+    const [consecutiveWins, setConsecutiveWins] = useState(0);
 
-    async function fetchAnime(): Promise<PopularAnimeItem | null> {
+    async function fetchAnime(excludeIds: number[] = []): Promise<PopularAnimeItem | null> {
         try {
             // Fetch the popular anime list from API
             const response = await fetch(`http://localhost:3333/api/getAnimesByPopularity`);
 
             if (!response.ok) {
                 console.log("Failed to fetch anime list, retrying...");
-                return fetchAnime(); // Retry
+                return fetchAnime(excludeIds); // Retry
             }
 
             const data = await response.json();
@@ -48,9 +52,17 @@ export default function Page() {
                 return null;
             }
 
+            // Filter out excluded anime IDs
+            const availableAnime = data.data.filter(
+                (item: PopularAnimeItem) => !excludeIds.includes(item.node.id)
+            );
+
+            // If no anime available after filtering, return any random one
+            const animeList = availableAnime.length > 0 ? availableAnime : data.data;
+
             // Pick a random anime from the list
-            const randomIndex = Math.floor(Math.random() * data.data.length);
-            const selectedAnime = data.data[randomIndex];
+            const randomIndex = Math.floor(Math.random() * animeList.length);
+            const selectedAnime = animeList[randomIndex];
 
             return selectedAnime;
         } catch (error) {
@@ -60,7 +72,7 @@ export default function Page() {
     }
 
     async function handleGuess(clickedSide: "left" | "right") {
-        if (!leftAnime || !rightAnime) return;
+        if (!leftAnime || !rightAnime || isAnimating) return;
 
         // Show the right anime's mean
         setShowRightMean(true);
@@ -82,19 +94,42 @@ export default function Page() {
 
             if (guessedCorrectly) {
                 setScore(score + 1);
-                // Move the winner to the left
+                
                 if (rightIsHigher) {
+                    // Right anime won - animate it sliding to the left
+                    await animationFromRightAnimeToLeftAnime();
                     setLeftAnime(rightAnime);
+                    setConsecutiveWins(0); // Reset counter when right anime wins
+                } else {
+                    // Left anime won - it stays on the left
+                    const newWins = consecutiveWins + 1;
+                    setConsecutiveWins(newWins);
+                    
+                    // If left anime won 2 times in a row, replace it with a new anime
+                    if (newWins >= 2) {
+                        const excludeIds = [leftAnime.node.id, rightAnime.node.id];
+                        const newLeft = await fetchAnime(excludeIds);
+                        if (newLeft) {
+                            // Animate the new anime coming in from the right
+                            setRightAnime(newLeft);
+                            await timeout(100); // Small delay to ensure state updates
+                            await animationFromRightAnimeToLeftAnime();
+                            setLeftAnime(newLeft);
+                        }
+                        setConsecutiveWins(0);
+                    }
                 }
-                // If left wins, it stays
+                
             } else {
                 // Show modal for wrong guess
                 setShowModal(true);
+                setConsecutiveWins(0); // Reset on loss
             }
         }
 
-        // Get new anime for right side
-        const newRight = await fetchAnime();
+        // Get new anime for right side (exclude the winner that's now on left)
+        const excludeIds = leftAnime ? [leftAnime.node.id] : [];
+        const newRight = await fetchAnime(excludeIds);
         if (newRight) setRightAnime(newRight);
 
         // Reset the mean visibility
@@ -126,9 +161,26 @@ export default function Page() {
     async function loadInitialAnime() {
         const left = await fetchAnime();
         setLeftAnime(left);
-        const right = await fetchAnime();
+        // Ensure right anime is different from left
+        const excludeIds = left ? [left.node.id] : [];
+        const right = await fetchAnime(excludeIds);
         setRightAnime(right);
     }
+
+    async function animationFromRightAnimeToLeftAnime() {
+        if (!rightAnime) return;
+        
+        setIsAnimating(true);
+        setAnimatingAnime(rightAnime);
+        
+        // Wait for animation to complete
+        await timeout(800);
+        
+        setAnimatingAnime(null);
+        setIsAnimating(false);
+    }
+
+
 
     // Load both images on load
     useEffect(() => {
@@ -136,7 +188,45 @@ export default function Page() {
     }, []);
 
     return (
-        <main className="flex h-screen">
+        <main className="flex h-screen relative overflow-hidden">
+            {/* Animating Anime Overlay */}
+            <AnimatePresence>
+                {animatingAnime && (
+                    <motion.div
+                        className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <motion.div
+                            className="absolute w-1/2 h-full flex flex-col items-center justify-end p-8"
+                            initial={{ right: 0 }}
+                            animate={{ right: "50%" }}
+                            transition={{ duration: 0.8, ease: "easeInOut" }}
+                        >
+                            <img
+                                src={animatingAnime.node.main_picture.large}
+                                alt={animatingAnime.node.alternative_titles?.en || animatingAnime.node.title}
+                                className="absolute inset-0 w-full h-full blur-lg select-none"
+                                draggable="false"
+                            />
+                            <img
+                                src={animatingAnime.node.main_picture.large}
+                                alt={animatingAnime.node.alternative_titles?.en || animatingAnime.node.title}
+                                className="relative inset-0 h-full object-cover object-center m-25 rounded-xl select-none"
+                                draggable="false"
+                            />
+                            <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
+                                <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
+                                    {animatingAnime.node.alternative_titles?.en || animatingAnime.node.title}
+                                    {animatingAnime.node.mean ? ` - ${animatingAnime.node.mean.toFixed(2)}` : ""}
+                                </h2>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Left Side */}
             <div className="left-side flex-1 relative flex flex-col items-center justify-end p-8 ">
                 {leftAnime && (
@@ -193,6 +283,7 @@ export default function Page() {
                             onClick={() => {
                                 setShowModal(false);
                                 setScore(0);
+                                setConsecutiveWins(0);
                                 loadInitialAnime();
                             }}
                         >
