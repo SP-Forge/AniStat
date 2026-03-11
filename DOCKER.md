@@ -38,15 +38,25 @@ docker run -p 3000:3000 -p 3333:3333 --env-file backend/.env anistat-app
 
 ## Deploying to Render
 
-**IMPORTANT:** Make sure to configure these settings correctly:
+**CRITICAL: Fix the root package.json issue first!**
+
+Your repository has an empty `package.json` in the root that interferes with Docker builds. 
+**Delete these files from the repository root:**
+```bash
+git rm package.json package-lock.json
+git commit -m "Remove empty root package files"
+git push
+```
+
+**Then configure Render:**
 
 1. **Create a new Web Service** in Render
 2. **Connect your GitHub repository**
-3. **Configure the service with these EXACT settings:**
+3. **Configure with these EXACT settings:**
    - **Environment**: Docker
-   - **Root Directory**: `anistat` ⚠️ **CRITICAL - Must be set to anistat**
-   - **Dockerfile Path**: `Dockerfile` (relative to root directory)
-   - **Docker Build Context Directory**: `.` (relative to root directory)
+   - **Root Directory**: `anistat`
+   - **Dockerfile Path**: `Dockerfile`
+   - **Docker Build Context Directory**: `.`
 
 4. **Add Environment Variable:**
    - Key: `CLIENT_ID`
@@ -54,7 +64,10 @@ docker run -p 3000:3000 -p 3333:3333 --env-file backend/.env anistat-app
 
 5. **Deploy!**
 
-The root directory setting is crucial - without it, Docker will use the wrong package.json file.
+**Alternative:** If you don't want to delete the root package.json, use these Render settings instead:
+   - **Root Directory**: Leave blank
+   - **Dockerfile Path**: `anistat/Dockerfile`
+   - **Docker Build Context Directory**: `anistat`
 
 ## Stop Services
 ```bash
