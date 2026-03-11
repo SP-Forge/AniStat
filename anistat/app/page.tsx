@@ -27,7 +27,7 @@ export default function Page() {
     const [rightAnime, setRightAnime] = useState<PopularAnimeItem | null>(null);
     const [isSpinning, setIsSpinning] = useState(false);
     const [spinSpeed, setSpinSpeed] = useState(0.5);
-    const spinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const spinTimeoutRef = useRef<number | null>(null);
     const [showRightMean, setShowRightMean] = useState(false);
     const [score, setScore] = useState(0);
     const [showModal, setShowModal] = useState(false);
