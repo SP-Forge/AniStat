@@ -7,20 +7,19 @@ RUN curl -fsSL https://deno.land/install.sh | sh
 ENV DENO_INSTALL="/root/.deno"
 ENV PATH="$DENO_INSTALL/bin:$PATH"
 
-# Install dependencies for Next.js
-FROM base AS deps
+# Build Next.js app
+FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Copy package files and install dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Build Next.js app
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy all source files
 COPY . .
 
+# Build the Next.js application
 RUN npm run build
 
 # Production image
