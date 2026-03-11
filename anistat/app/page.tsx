@@ -187,6 +187,7 @@ export default function Page() {
         loadInitialAnime();
     }, []);
 
+    
     return (
         <main className="flex h-screen relative overflow-hidden">
             {/* Animating Anime Overlay */}

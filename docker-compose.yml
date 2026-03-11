@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  anistat:
+    build:
+      context: ./anistat
+      dockerfile: Dockerfile
+    container_name: anistat-app
+    ports:
+      - "3000:3000"
+      - "3333:3333"
+    environment:
+      - NODE_ENV=production
+      - CLIENT_ID=${CLIENT_ID}
+    env_file:
+      - ./anistat/backend/.env
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
