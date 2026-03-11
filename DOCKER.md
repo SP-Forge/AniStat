@@ -7,7 +7,7 @@ This project uses a single Docker container to run both the frontend (Next.js) a
 - Docker and Docker Compose installed
 - MyAnimeList API Client ID
 
-## Setup
+## Local Development
 
 1. **Configure Backend Environment Variables**
    ```bash
@@ -25,6 +25,26 @@ This project uses a single Docker container to run both the frontend (Next.js) a
 3. **Access the Application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:3333
+
+## Deploying to Render
+
+1. **Create a new Web Service** in Render
+2. **Connect your GitHub repository**
+3. **Configure the service:**
+   - **Environment**: Docker
+   - **Dockerfile Path**: `anistat/Dockerfile`
+   - **Docker Build Context Directory**: `anistat`
+   - **Port**: 3000 (Render will set the PORT environment variable automatically)
+
+4. **Add Environment Variable:**
+   - Key: `CLIENT_ID`
+   - Value: Your MyAnimeList API Client ID
+
+5. **Deploy!**
+
+The container will:
+- Start the backend (Deno) on port 3333
+- Start the frontend (Next.js) on the port specified by Render (default 3000)
 
 ## Single Container Build
 
@@ -50,6 +70,6 @@ docker-compose up --build
 
 Both services run in a single container:
 - **Backend (Deno)**: Runs on port 3333
-- **Frontend (Next.js)**: Runs on port 3000
+- **Frontend (Next.js)**: Runs on port 3000 (or PORT env variable)
 
 The container starts both services automatically using a startup script.
