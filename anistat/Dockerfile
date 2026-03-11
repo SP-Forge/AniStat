@@ -27,6 +27,8 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 # Copy Next.js built files
 COPY --from=builder /app/public ./public
