@@ -20,6 +20,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Exclude backend from frontend build
+RUN rm -rf backend
 
 RUN npm run build
 
@@ -34,8 +36,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy backend files from builder
-COPY --from=builder /app/backend ./backend
+# Copy backend files
+COPY backend/ ./backend/
 
 # Cache Deno dependencies
 WORKDIR /app/backend
