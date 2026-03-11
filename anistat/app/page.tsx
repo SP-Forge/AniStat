@@ -34,6 +34,8 @@ export default function Page() {
     const [isAnimating, setIsAnimating] = useState(false);
     const [animatingAnime, setAnimatingAnime] = useState<PopularAnimeItem | null>(null);
     const [consecutiveWins, setConsecutiveWins] = useState(0);
+    const [leftBorderColor, setLeftBorderColor] = useState("");
+    const [rightBorderColor, setRightBorderColor] = useState("");
 
     async function fetchAnime(excludeIds: number[] = []): Promise<PopularAnimeItem | null> {
         try {
@@ -77,7 +79,7 @@ export default function Page() {
         // Show the right anime's mean
         setShowRightMean(true);
 
-        await timeout(1500); // Wait a bit to let user see the result
+        await timeout(1000); // Wait to let user see the scores
 
         // Determine if the guess was correct
         let guessedCorrectly = false;
@@ -93,11 +95,19 @@ export default function Page() {
             }
 
             if (guessedCorrectly) {
+                // Show green border on correct choice
+                if (clickedSide === "left") {
+                    setLeftBorderColor("border-4 border-green-500");
+                } else {
+                    setRightBorderColor("border-4 border-green-500");
+                }
+                
+                await timeout(800); // Show feedback
                 setScore(score + 1);
                 
                 if (rightIsHigher) {
                     // Right anime won - animate it sliding to the left
-                    await animationFromRightAnimeToLeftAnime();
+                    await animationFromRightAnimeToLeftAnime(rightAnime);
                     setLeftAnime(rightAnime);
                     setConsecutiveWins(0); // Reset counter when right anime wins
                 } else {
@@ -107,13 +117,17 @@ export default function Page() {
                     
                     // If left anime won 2 times in a row, replace it with a new anime
                     if (newWins >= 2) {
+                        // First, fetch the new anime completely
                         const excludeIds = [leftAnime.node.id, rightAnime.node.id];
                         const newLeft = await fetchAnime(excludeIds);
+                        
                         if (newLeft) {
-                            // Animate the new anime coming in from the right
+                            // Once loaded, place it on the right side
                             setRightAnime(newLeft);
-                            await timeout(100); // Small delay to ensure state updates
-                            await animationFromRightAnimeToLeftAnime();
+                            await timeout(200); // Wait for state to update and render
+                            
+                            // Now animate the new anime sliding from right to left
+                            await animationFromRightAnimeToLeftAnime(newLeft);
                             setLeftAnime(newLeft);
                         }
                         setConsecutiveWins(0);
@@ -121,6 +135,15 @@ export default function Page() {
                 }
                 
             } else {
+                // Show red border on incorrect choice
+                if (clickedSide === "left") {
+                    setLeftBorderColor("border-4 border-red-500");
+                } else {
+                    setRightBorderColor("border-4 border-red-500");
+                }
+                
+                await timeout(800); // Show feedback
+                
                 // Show modal for wrong guess
                 setShowModal(true);
                 setConsecutiveWins(0); // Reset on loss
@@ -132,7 +155,9 @@ export default function Page() {
         const newRight = await fetchAnime(excludeIds);
         if (newRight) setRightAnime(newRight);
 
-        // Reset the mean visibility
+        // Reset borders and mean visibility
+        setLeftBorderColor("");
+        setRightBorderColor("");
         setShowRightMean(false);
     }
 
@@ -167,11 +192,11 @@ export default function Page() {
         setRightAnime(right);
     }
 
-    async function animationFromRightAnimeToLeftAnime() {
-        if (!rightAnime) return;
+    async function animationFromRightAnimeToLeftAnime(animeToAnimate: PopularAnimeItem) {
+        if (!animeToAnimate) return;
         
         setIsAnimating(true);
-        setAnimatingAnime(rightAnime);
+        setAnimatingAnime(animeToAnimate);
         
         // Wait for animation to complete
         await timeout(800);
@@ -187,7 +212,6 @@ export default function Page() {
         loadInitialAnime();
     }, []);
 
-    
     return (
         <main className="flex h-screen relative overflow-hidden">
             {/* Animating Anime Overlay */}
@@ -233,11 +257,12 @@ export default function Page() {
                 {leftAnime && (
                     <>
                         <img src={leftAnime.node.main_picture.large} alt={leftAnime.node.alternative_titles?.en || leftAnime.node.title} className="absolute inset-0 w-full h-full blur-lg select-none" draggable="false" />
-                        <img src={leftAnime.node.main_picture.large} alt={leftAnime.node.alternative_titles?.en || leftAnime.node.title} className="relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-xl cursor-pointer select-none" draggable="false" onClick={() => handleGuess("left")} />
+                        <img src={leftAnime.node.main_picture.large} alt={leftAnime.node.alternative_titles?.en || leftAnime.node.title} className={`relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-xl cursor-pointer select-none transition-all ${leftBorderColor}`} draggable="false" onClick={() => handleGuess("left")} />
                         <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
                             <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
                                 {leftAnime.node.alternative_titles?.en || leftAnime.node.title}
                                 {leftAnime.node.mean ? ` - ${leftAnime.node.mean.toFixed(2)}` : ""}
+                               
                             </h2>
                         </div>
                     </>
@@ -245,15 +270,16 @@ export default function Page() {
             </div>
 
             {/* Right Side */}
-            <div className="right-side flex-1 relative flex flex-col items-center justify-end p-8 ">
+            <div className="right-side flex-1 relative flex flex-col items-center justify-end p-8">
                 {rightAnime && (
                     <>
                         <img src={rightAnime.node.main_picture.large} alt={rightAnime.node.alternative_titles?.en || rightAnime.node.title} className="absolute inset-0 w-full h-full blur-lg select-none" draggable="false" />
-                        <img src={rightAnime.node.main_picture.large} alt={rightAnime.node.alternative_titles?.en || rightAnime.node.title} className="relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-xl cursor-pointer select-none" draggable="false" onClick={() => handleGuess("right")} />
+                        <img src={rightAnime.node.main_picture.large} alt={rightAnime.node.alternative_titles?.en || rightAnime.node.title} className={`relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-xl cursor-pointer select-none transition-all ${rightBorderColor}`} draggable="false" onClick={() => handleGuess("right")} />
                         <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
                             <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
                                 {rightAnime.node.alternative_titles?.en || rightAnime.node.title}
                                 {rightAnime.node.mean && showRightMean ? ` - ${rightAnime.node.mean.toFixed(2)}` : ""}
+                                
                             </h2>
                         </div>
                     </>
@@ -285,6 +311,8 @@ export default function Page() {
                                 setShowModal(false);
                                 setScore(0);
                                 setConsecutiveWins(0);
+                                setLeftBorderColor("");
+                                setRightBorderColor("");
                                 loadInitialAnime();
                             }}
                         >

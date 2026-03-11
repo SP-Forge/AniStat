@@ -10,17 +10,17 @@ ENV PATH="$DENO_INSTALL/bin:$PATH"
 # Install dependencies for Next.js
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
-WORKDIR /app/frontend
+WORKDIR /app
 
 COPY package.json package-lock.json* ./
 RUN npm ci
 
 # Build Next.js app
 FROM base AS builder
-WORKDIR /app/frontend
-COPY --from=deps /app/frontend/node_modules ./node_modules
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Exclude backend from frontend context
+# Exclude backend from frontend build
 RUN rm -rf backend
 
 RUN npm run build
@@ -32,23 +32,22 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy Next.js built files
-WORKDIR /app/frontend
-COPY --from=builder /app/frontend/public ./public
-COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 # Copy backend files
-WORKDIR /app/backend
-COPY backend/ ./
+COPY backend/ ./backend/
 
 # Cache Deno dependencies
+WORKDIR /app/backend
 RUN deno install --entrypoint main.ts
 
 # Create startup script
 WORKDIR /app
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'cd /app/backend && deno run --allow-net --allow-env main.ts &' >> start.sh && \
-    echo 'cd /app/frontend && node server.js' >> start.sh && \
+    echo 'cd /app && node server.js' >> start.sh && \
     chmod +x start.sh
 
 EXPOSE 3000 3333
