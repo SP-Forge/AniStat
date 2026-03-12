@@ -22,9 +22,10 @@ ENV NODE_ENV=production
 # Install Deno in runner stage
 RUN apk add --no-cache curl unzip && \
     curl -fsSL https://deno.land/install.sh | sh && \
-    mv /root/.deno/bin/deno /usr/local/bin/deno && \
-    apk del curl unzip && \
-    deno --version
+    apk del curl unzip
+
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 # Copy Next.js built files
 COPY --from=builder /app/public ./public
