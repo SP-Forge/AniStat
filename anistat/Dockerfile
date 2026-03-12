@@ -19,14 +19,16 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PATH="/usr/local/bin:${PATH}"
+ENV DENO_VERSION=2.2.4
 
 # Install system dependencies for Deno
 RUN apk add --no-cache curl unzip libgcc libstdc++
 
 # Install Deno
-RUN curl -fsSL https://deno.land/install.sh | sh && \
-    cp /root/.deno/bin/deno /usr/local/bin/deno && \
+RUN curl -fsSL "https://github.com/denoland/deno/releases/download/v${DENO_VERSION}/deno-x86_64-unknown-linux-musl.zip" -o /tmp/deno.zip && \
+    unzip -q /tmp/deno.zip -d /usr/local/bin && \
     chmod +x /usr/local/bin/deno && \
+    rm -f /tmp/deno.zip && \
     /usr/local/bin/deno --version
 
 # Copy Next.js built files
