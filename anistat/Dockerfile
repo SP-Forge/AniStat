@@ -43,7 +43,8 @@ RUN echo '#!/bin/sh' > start.sh && \
     echo 'echo "Backend started with PID $BACKEND_PID"' >> start.sh && \
     echo 'sleep 2' >> start.sh && \
     echo 'echo "Starting frontend on port ${PORT:-3000}..."' >> start.sh && \
-    echo 'cd /app && PORT=${PORT:-3000} node server.js' >> start.sh && \
+    echo 'if [ -f /app/server.js ]; then FRONTEND_DIR=/app; elif [ -f /app/.next/standalone/server.js ]; then FRONTEND_DIR=/app/.next/standalone; else echo "Could not find Next standalone server.js"; ls -la /app; ls -la /app/.next || true; ls -la /app/.next/standalone || true; exit 1; fi' >> start.sh && \
+    echo 'cd "$FRONTEND_DIR" && HOSTNAME=0.0.0.0 PORT=${PORT:-3000} node server.js' >> start.sh && \
     chmod +x start.sh
 
 EXPOSE 3000 3333
