@@ -1,20 +1,11 @@
-# Multi-stage build for both Frontend (Next.js) and Backend (Deno)
-FROM node:20-alpine AS base
-
-# Install Deno
-RUN apk add --no-cache curl unzip
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="$DENO_INSTALL/bin:$PATH"
-
 # Build Next.js app
-FROM base AS builder
+FROM node:20-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package.json package-lock.json ./
-RUN npm i
+RUN npm ci
 
 # Copy all source files
 COPY . .
@@ -22,28 +13,32 @@ COPY . .
 # Build the Next.js application
 RUN npm run build
 
-# Production image
-FROM base AS runner
+# Production image  
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="$DENO_INSTALL/bin:$PATH"
+
+# Install Deno in runner stage
+RUN apk add --no-cache curl unzip && \
+    curl -fsSL https://deno.land/install.sh | sh && \
+    mv /root/.deno/bin/deno /usr/local/bin/deno && \
+    apk del curl unzip && \
+    deno --version
 
 # Copy Next.js built files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy backend files from builder
+# Copy backend files
 COPY --from=builder /app/backend ./backend
 
 # Create startup script
-WORKDIR /app
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'set -e' >> start.sh && \
     echo 'echo "Starting backend on port 3333..."' >> start.sh && \
-    echo 'cd /app/backend && /root/.deno/bin/deno run --allow-net --allow-env main.ts &' >> start.sh && \
+    echo 'cd /app/backend && deno run --allow-net --allow-env main.ts &' >> start.sh && \
     echo 'BACKEND_PID=$!' >> start.sh && \
     echo 'echo "Backend started with PID $BACKEND_PID"' >> start.sh && \
     echo 'sleep 2' >> start.sh && \
