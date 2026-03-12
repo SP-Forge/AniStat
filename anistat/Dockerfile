@@ -18,6 +18,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PATH="/usr/local/bin:${PATH}"
 
 # Install system dependencies for Deno
 RUN apk add --no-cache curl unzip libgcc libstdc++
@@ -25,7 +26,8 @@ RUN apk add --no-cache curl unzip libgcc libstdc++
 # Install Deno
 RUN curl -fsSL https://deno.land/install.sh | sh && \
     cp /root/.deno/bin/deno /usr/local/bin/deno && \
-    deno --version
+    chmod +x /usr/local/bin/deno && \
+    /usr/local/bin/deno --version
 
 # Copy Next.js built files
 COPY --from=builder /app/public ./public
@@ -39,7 +41,7 @@ COPY --from=builder /app/backend ./backend
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'set -e' >> start.sh && \
     echo 'echo "Starting backend on port 3333..."' >> start.sh && \
-    echo 'cd /app/backend && deno run --allow-net --allow-env main.ts &' >> start.sh && \
+    echo 'cd /app/backend && /usr/local/bin/deno run --allow-net --allow-env main.ts &' >> start.sh && \
     echo 'BACKEND_PID=$!' >> start.sh && \
     echo 'echo "Backend started with PID $BACKEND_PID"' >> start.sh && \
     echo 'sleep 2' >> start.sh && \
