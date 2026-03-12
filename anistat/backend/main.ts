@@ -3,7 +3,6 @@
 import { Application, Router } from "@oak/oak";
 import { oakCors } from "@tajpouria/cors";
 
-
 export const app = new Application();
 const router = new Router();
 
@@ -39,7 +38,6 @@ router.get("/api/getAnimeById/:id", async (ctx) => {
                 "X-MAL-CLIENT-ID": CLIENT_ID,
             },
         });
-   
 
         if (!response.ok) {
             ctx.response.status = response.status;
@@ -60,7 +58,6 @@ router.get("/api/getAnimeById/:id", async (ctx) => {
 });
 
 router.get("/api/getAnimesByPopularity", async (ctx) => {
-
     if (!CLIENT_ID) {
         ctx.response.status = 500;
         ctx.response.body = { error: "Client ID is not configured" };
@@ -97,6 +94,9 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 if (import.meta.main) {
-    console.log("Server listening on port http://localhost:3333");
-    await app.listen({ port: 3333 });
+    const port = Number(Deno.env.get("PORT") ?? "3333");
+    const hostname = "0.0.0.0";
+
+    console.log(`Server listening on http://${hostname}:${port}`);
+    await app.listen({ hostname, port });
 }
