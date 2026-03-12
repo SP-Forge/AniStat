@@ -1,4 +1,4 @@
-const Base_URL = "http://localhost:3333/api/";
+const Base_URL = "/api/";
 
 export async function getAnimeById(id: number) {
     const response = await fetch(`${Base_URL}getAnimeById/${id}`);

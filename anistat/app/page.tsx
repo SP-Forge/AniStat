@@ -27,7 +27,7 @@ export default function Page() {
     const [rightAnime, setRightAnime] = useState<PopularAnimeItem | null>(null);
     const [isSpinning, setIsSpinning] = useState(false);
     const [spinSpeed, setSpinSpeed] = useState(0.5);
-    const spinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [showRightMean, setShowRightMean] = useState(false);
     const [score, setScore] = useState(0);
     const [showModal, setShowModal] = useState(false);
@@ -40,7 +40,7 @@ export default function Page() {
     async function fetchAnime(excludeIds: number[] = []): Promise<PopularAnimeItem | null> {
         try {
             // Fetch the popular anime list from API
-            const response = await fetch(`http://localhost:3333/api/getAnimesByPopularity`);
+            const response = await fetch(`/api/getAnimesByPopularity`);
 
             if (!response.ok) {
                 console.log("Failed to fetch anime list, retrying...");
@@ -55,9 +55,7 @@ export default function Page() {
             }
 
             // Filter out excluded anime IDs
-            const availableAnime = data.data.filter(
-                (item: PopularAnimeItem) => !excludeIds.includes(item.node.id)
-            );
+            const availableAnime = data.data.filter((item: PopularAnimeItem) => !excludeIds.includes(item.node.id));
 
             // If no anime available after filtering, return any random one
             const animeList = availableAnime.length > 0 ? availableAnime : data.data;
@@ -101,10 +99,10 @@ export default function Page() {
                 } else {
                     setRightBorderColor("border-4 border-green-500");
                 }
-                
+
                 await timeout(800); // Show feedback
                 setScore(score + 1);
-                
+
                 if (rightIsHigher) {
                     // Right anime won - animate it sliding to the left
                     await animationFromRightAnimeToLeftAnime(rightAnime);
@@ -114,18 +112,18 @@ export default function Page() {
                     // Left anime won - it stays on the left
                     const newWins = consecutiveWins + 1;
                     setConsecutiveWins(newWins);
-                    
+
                     // If left anime won 2 times in a row, replace it with a new anime
                     if (newWins >= 2) {
                         // First, fetch the new anime completely
                         const excludeIds = [leftAnime.node.id, rightAnime.node.id];
                         const newLeft = await fetchAnime(excludeIds);
-                        
+
                         if (newLeft) {
                             // Once loaded, place it on the right side
                             setRightAnime(newLeft);
                             await timeout(200); // Wait for state to update and render
-                            
+
                             // Now animate the new anime sliding from right to left
                             await animationFromRightAnimeToLeftAnime(newLeft);
                             setLeftAnime(newLeft);
@@ -133,7 +131,6 @@ export default function Page() {
                         setConsecutiveWins(0);
                     }
                 }
-                
             } else {
                 // Show red border on incorrect choice
                 if (clickedSide === "left") {
@@ -141,9 +138,9 @@ export default function Page() {
                 } else {
                     setRightBorderColor("border-4 border-red-500");
                 }
-                
+
                 await timeout(800); // Show feedback
-                
+
                 // Show modal for wrong guess
                 setShowModal(true);
                 setConsecutiveWins(0); // Reset on loss
@@ -194,18 +191,16 @@ export default function Page() {
 
     async function animationFromRightAnimeToLeftAnime(animeToAnimate: PopularAnimeItem) {
         if (!animeToAnimate) return;
-        
+
         setIsAnimating(true);
         setAnimatingAnime(animeToAnimate);
-        
+
         // Wait for animation to complete
         await timeout(800);
-        
+
         setAnimatingAnime(null);
         setIsAnimating(false);
     }
-
-
 
     // Load both images on load
     useEffect(() => {
@@ -217,30 +212,10 @@ export default function Page() {
             {/* Animating Anime Overlay */}
             <AnimatePresence>
                 {animatingAnime && (
-                    <motion.div
-                        className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
-                        initial={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <motion.div
-                            className="absolute w-1/2 h-full flex flex-col items-center justify-end p-8"
-                            initial={{ right: 0 }}
-                            animate={{ right: "50%" }}
-                            transition={{ duration: 0.8, ease: "easeInOut" }}
-                        >
-                            <img
-                                src={animatingAnime.node.main_picture.large}
-                                alt={animatingAnime.node.alternative_titles?.en || animatingAnime.node.title}
-                                className="absolute inset-0 w-full h-full blur-lg select-none"
-                                draggable="false"
-                            />
-                            <img
-                                src={animatingAnime.node.main_picture.large}
-                                alt={animatingAnime.node.alternative_titles?.en || animatingAnime.node.title}
-                                className="relative inset-0 h-full object-cover object-center m-25 rounded-xl select-none"
-                                draggable="false"
-                            />
+                    <motion.div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                        <motion.div className="absolute w-1/2 h-full flex flex-col items-center justify-end p-8" initial={{ right: 0 }} animate={{ right: "50%" }} transition={{ duration: 0.8, ease: "easeInOut" }}>
+                            <img src={animatingAnime.node.main_picture.large} alt={animatingAnime.node.alternative_titles?.en || animatingAnime.node.title} className="absolute inset-0 w-full h-full blur-lg select-none" draggable="false" />
+                            <img src={animatingAnime.node.main_picture.large} alt={animatingAnime.node.alternative_titles?.en || animatingAnime.node.title} className="relative inset-0 h-full object-cover object-center m-25 rounded-xl select-none" draggable="false" />
                             <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
                                 <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
                                     {animatingAnime.node.alternative_titles?.en || animatingAnime.node.title}
@@ -262,7 +237,6 @@ export default function Page() {
                             <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
                                 {leftAnime.node.alternative_titles?.en || leftAnime.node.title}
                                 {leftAnime.node.mean ? ` - ${leftAnime.node.mean.toFixed(2)}` : ""}
-                               
                             </h2>
                         </div>
                     </>
@@ -279,7 +253,6 @@ export default function Page() {
                             <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
                                 {rightAnime.node.alternative_titles?.en || rightAnime.node.title}
                                 {rightAnime.node.mean && showRightMean ? ` - ${rightAnime.node.mean.toFixed(2)}` : ""}
-                                
                             </h2>
                         </div>
                     </>
