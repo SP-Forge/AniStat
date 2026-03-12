@@ -94,7 +94,7 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 if (import.meta.main) {
-    const port = Number(Deno.env.get("PORT") ?? "3333");
+    const port = Number(Deno.env.get("BACKEND_PORT") ?? "3333");
     const hostname = "0.0.0.0";
 
     console.log(`Server listening on http://${hostname}:${port}`);

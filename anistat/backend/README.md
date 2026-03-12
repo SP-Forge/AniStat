@@ -1,12 +1,12 @@
-Make sure .env is added
+Make sure `.env` is present in this folder and contains `CLIENT_ID`.
 
-install deno
+Install Deno (PowerShell):
 `irm https://deno.land/install.ps1 | iex`
 
-## Running Both Simultaneously
+## Running Locally
 
-- Open two terminal windows
-- Run backend in one: `deno run --env-file main.ts` (from `/backend`)
-- Access backend api at `http://localhost:3333`
-- Run frontend in the other: `npm run dev` (from `/frontend`)
-- Access application at `http://localhost:3000`
+- Open two terminal windows.
+- Run backend in one (from `/anistat/backend`): `deno run --allow-net --allow-env main.ts`
+- Access backend API at `http://localhost:3333/api/`
+- Run frontend in the other (from `/anistat`): `npm run dev`
+- Access app at `http://localhost:3000`

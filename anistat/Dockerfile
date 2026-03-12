@@ -1,6 +1,5 @@
 # Build Next.js app
-FROM node:20-alpine AS builder
-RUN apk add --no-cache libc6-compat
+FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
 # Copy package files and install dependencies
@@ -14,21 +13,17 @@ COPY . .
 RUN npm run build
 
 # Production image  
-FROM node:20-alpine AS runner
+FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PATH="/usr/local/bin:${PATH}"
-ENV DENO_VERSION=2.2.4
 
 # Install system dependencies for Deno
-RUN apk add --no-cache curl unzip libgcc libstdc++
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Install Deno
-RUN curl -fsSL "https://github.com/denoland/deno/releases/download/v${DENO_VERSION}/deno-x86_64-unknown-linux-musl.zip" -o /tmp/deno.zip && \
-    unzip -q /tmp/deno.zip -d /usr/local/bin && \
-    chmod +x /usr/local/bin/deno && \
-    rm -f /tmp/deno.zip && \
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh -s -- -y && \
     /usr/local/bin/deno --version
 
 # Copy Next.js built files
@@ -42,8 +37,8 @@ COPY --from=builder /app/backend ./backend
 # Create startup script
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'set -e' >> start.sh && \
-    echo 'echo "Starting backend on port 3333..."' >> start.sh && \
-    echo 'cd /app/backend && /usr/local/bin/deno run --allow-net --allow-env main.ts &' >> start.sh && \
+    echo 'echo "Starting backend on port ${BACKEND_PORT:-3333}..."' >> start.sh && \
+    echo 'cd /app/backend && BACKEND_PORT=${BACKEND_PORT:-3333} /usr/local/bin/deno run --allow-net --allow-env main.ts &' >> start.sh && \
     echo 'BACKEND_PID=$!' >> start.sh && \
     echo 'echo "Backend started with PID $BACKEND_PID"' >> start.sh && \
     echo 'sleep 2' >> start.sh && \
