@@ -89,6 +89,70 @@ router.get("/api/getAnimesByPopularity", async (ctx) => {
     }
 });
 
+router.get("/api/GetMovieAnimes", async (ctx) => {
+    if (!CLIENT_ID) {
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Client ID is not configured" };
+        return;
+    }
+
+    try {
+        const response = await fetch(`${baseURL}anime/ranking?limit=500&ranking_type=movie&offset=0&fields=main_picture,alternative_titles,mean`, {
+            headers: {
+                "X-MAL-CLIENT-ID": CLIENT_ID,
+            },
+        });
+
+        if (!response.ok) {
+            ctx.response.status = response.status;
+            ctx.response.body = {
+                error: "Failed to fetch anime data from MyAnimeList",
+            };
+            return;
+        }
+
+        const data = await response.json();
+        ctx.response.status = 200;
+        ctx.response.body = data;
+    } catch (error) {
+        console.error("Error fetching anime data:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Failed to fetch anime data" };
+    }
+});
+
+router.get("/api/GetTVAnimes", async (ctx) => {
+    if (!CLIENT_ID) {
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Client ID is not configured" };
+        return;
+    }
+
+    try {
+        const response = await fetch(`${baseURL}anime/ranking?limit=500&ranking_type=tv&offset=0&fields=main_picture,alternative_titles,mean`, {
+            headers: {
+                "X-MAL-CLIENT-ID": CLIENT_ID,
+            },
+        });
+
+        if (!response.ok) {
+            ctx.response.status = response.status;
+            ctx.response.body = {
+                error: "Failed to fetch anime data from MyAnimeList",
+            };
+            return;
+        }
+
+        const data = await response.json();
+        ctx.response.status = 200;
+        ctx.response.body = data;
+    } catch (error) {
+        console.error("Error fetching anime data:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Failed to fetch anime data" };
+    }
+});
+
 app.use(oakCors());
 app.use(router.routes());
 app.use(router.allowedMethods());
