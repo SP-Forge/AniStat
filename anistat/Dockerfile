@@ -43,7 +43,7 @@ WORKDIR /app
 RUN echo '#!/bin/sh' > start.sh && \
     echo 'set -e' >> start.sh && \
     echo 'echo "Starting backend on port 3333..."' >> start.sh && \
-    echo 'cd /app/backend && deno run --allow-net --allow-env main.ts &' >> start.sh && \
+    echo 'cd /app/backend && /root/.deno/bin/deno run --allow-net --allow-env main.ts &' >> start.sh && \
     echo 'BACKEND_PID=$!' >> start.sh && \
     echo 'echo "Backend started with PID $BACKEND_PID"' >> start.sh && \
     echo 'sleep 2' >> start.sh && \
