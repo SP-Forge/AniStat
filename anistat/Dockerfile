@@ -6,6 +6,7 @@ RUN apk add --no-cache curl unzip
 RUN curl -fsSL https://deno.land/install.sh | sh
 ENV DENO_INSTALL="/root/.deno"
 ENV PATH="$DENO_INSTALL/bin:$PATH"
+RUN deno --version && echo "Deno installed successfully"
 
 # Build Next.js app
 FROM base AS builder
@@ -29,6 +30,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV DENO_INSTALL="/root/.deno"
 ENV PATH="$DENO_INSTALL/bin:$PATH"
+
+# Verify Deno is available
+RUN ls -la /root/.deno/bin/ || echo "Deno directory not found" && \
+    /root/.deno/bin/deno --version || echo "Deno binary not working"
 
 # Copy Next.js built files
 COPY --from=builder /app/public ./public
