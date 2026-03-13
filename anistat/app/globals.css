@@ -10,6 +10,8 @@
   --color-foreground: var(--foreground);
   --color-black1: #1C1C1C;
   --color-black2: #333333;
+  --color-black3: #343434;
+  --color-red1: #9C0808;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
