@@ -60,7 +60,7 @@ Configure Render with these settings:
 
 - `PORT` is reserved for the Next.js frontend process on Render.
 - The internal backend runs on `BACKEND_PORT` (defaults to `3333`).
-- Frontend requests should use `/api/*` and are rewritten to `http://127.0.0.1:3333/api/*` inside the container.
+- Frontend requests should use `/api/*` and are rewritten to `http://127.0.0.1:3333-api/api/*` inside the container.
 
 **Alternative:** You can also deploy from repo root using:
 
