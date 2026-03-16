@@ -2,21 +2,32 @@
 
 import { Application, Router } from "@oak/oak";
 import { oakCors } from "@tajpouria/cors";
+import { neon } from "@neon/serverless";
+import { hash, verify } from "jsr:@denorg/scrypt@4.4.4";
 
 export const app = new Application();
 const router = new Router();
-
-const baseURL = "https://api.myanimelist.net/v2/";
-const CLIENT_ID = Deno.env.get("CLIENT_ID");
-
-if (!CLIENT_ID) {
-    console.log("CLIENT_ID environment variable is not set");
-}
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
 // AniStat API
+
+const databaseUrl = Deno.env.get("CONNECTION_STRING")!;
+const sql = neon(databaseUrl);
+
+try {
+    // Create the table
+    await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL
+    )
+  `;
+} catch (error) {
+    console.error(error);
+}
 
 router.get("/api/", (res) => {
     res.response.body = "Hello world!";
@@ -27,6 +38,17 @@ router.post("/api/login", async (ctx) => {
         const value = await ctx.request.body.json();
 
         if (!value.username || !value.password) {
+            ctx.response.status = 401;
+            ctx.response.body = { error: "Username and password are required" };
+            return;
+        }
+
+        const user = await sql`
+            SELECT * FROM users WHERE username = ${value.username}
+        `;
+
+        const isMatch = await verify(value.password, user[0].password);
+        if (!isMatch || !user.length) {
             ctx.response.status = 401;
             ctx.response.body = { error: "Invalid username or password" };
             return;
@@ -45,17 +67,33 @@ router.post("/api/register", async (ctx) => {
     try {
         const value = await ctx.request.body.json();
 
-        console.log(value);
-
         if (!value.username || !value.password) {
-            ctx.response.status = 400;
+            ctx.response.status = 401;
             ctx.response.body = { error: "Username and password are required" };
             return;
         }
 
-        console.log("Register request body:", value);
+        const user = await sql`
+            SELECT * FROM users WHERE username = ${value.username}
+        `;
+
+        if (user.length) {
+            ctx.response.status = 409;
+            ctx.response.body = { error: "Username already exists" };
+            return;
+        }
+
+        const hashedPassword = await hash(value.password);
+        value.password = hashedPassword;
+
+        const newUser = await sql`
+            INSERT INTO users (username, password) VALUES (${value.username}, ${value.password}) RETURNING *
+        `;
+
+        console.log("New user created:", newUser);
+
         ctx.response.status = 200;
-        ctx.response.body = { message: "Register received", data: value };
+        ctx.response.body = { message: "User registered successfully" };
     } catch (err: any) {
         ctx.response.status = 400;
         ctx.response.body = { error: "Invalid request body", details: err?.message ?? err };
@@ -66,6 +104,14 @@ router.post("/api/register", async (ctx) => {
 ///////////////////////////////////////////////////////////////////////
 
 // Anime API
+
+const baseURL = "https://api.myanimelist.net/v2/";
+const CLIENT_ID = Deno.env.get("CLIENT_ID");
+
+if (!CLIENT_ID) {
+    console.log("CLIENT_ID environment variable is not set");
+}
+
 router.get("/api/getAnimeById/:id", async (ctx) => {
     const id = ctx.params.id;
 
