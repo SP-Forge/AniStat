@@ -161,6 +161,143 @@ router.get("/api/GetTVAnimes", async (ctx) => {
 const PokebaseURL = "https://api.poketrace.com/v1/";
 const Pokemon_API_KEY = Deno.env.get("Pokemon_API_KEY");
 const journeyTogetherCacheFile = new URL("../public/pokemonJourneyTogether.json", import.meta.url);
+const Pokemon151CacheFile = new URL("../public/pokemon151.json", import.meta.url);
+const PrismaticEvolutionsCacheFile = new URL("../public/pokemonPrismaticEvolutions.json", import.meta.url);
+async function readPrismaticEvolutionsCache() {
+    try {
+        const raw = await Deno.readTextFile(PrismaticEvolutionsCacheFile);
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+async function writePrismaticEvolutionsCache(data: unknown) {
+    await Deno.mkdir(new URL("../public", import.meta.url), { recursive: true });
+    await Deno.writeTextFile(PrismaticEvolutionsCacheFile, JSON.stringify(data, null, 2));
+}
+router.get("/api/getPokemonPrismaticEvolutions", async (ctx) => {
+    const forceRefresh = ctx.request.url.searchParams.get("refresh") === "true";
+    const cachedData = await readPrismaticEvolutionsCache();
+    const normalizedCachedData = cachedData ? normalizeJourneyTogetherData(cachedData) : null;
+
+    if (!forceRefresh) {
+        if (normalizedCachedData) {
+            ctx.response.status = 200;
+            ctx.response.body = normalizedCachedData;
+            return;
+        }
+    }
+
+    if (!Pokemon_API_KEY) {
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Pokemon API Key is not configured and cache file was not found" };
+        return;
+    }
+
+    try {
+        const collected = [];
+        const seen = new Set();
+        const pageSignatures = new Set();
+        let page = 0;
+        let cursor = null;
+        let hasMore = true;
+        let consecutive429s = 0;
+        let pagesFetched = 0;
+        let lastPageAddedCards = 0;
+
+        while (page < MAX_SET_PAGES && hasMore) {
+            const offset = page * POKEMON_PAGE_SIZE;
+            const cursorPart = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
+            const query = `cards?set=sv-prismatic-evolutions&limit=${POKEMON_PAGE_SIZE}&offset=${offset}${cursorPart}`;
+            const response = await fetchCardsPage(query);
+
+            if (response.status === 429) {
+                consecutive429s += 1;
+                const retryAfterHeader = response.headers.get("retry-after");
+                const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+                const waitMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1000 : 1500;
+                if (consecutive429s <= 5) {
+                    await sleep(waitMs);
+                    continue;
+                }
+                if (normalizedCachedData) {
+                    ctx.response.status = 200;
+                    ctx.response.body = {
+                        ...normalizedCachedData,
+                        meta: {
+                            stale: true,
+                            note: "Rate limited by upstream API. Returned cached data.",
+                        },
+                    };
+                    return;
+                }
+                ctx.response.status = 429;
+                ctx.response.body = {
+                    error: "Rate limited by upstream API and no cache is available",
+                };
+                return;
+            }
+            consecutive429s = 0;
+            if (!response.ok) {
+                ctx.response.status = response.status;
+                ctx.response.body = {
+                    error: "Failed to fetch pokemon data from PokeAPI",
+                };
+                return;
+            }
+            const payload = await response.json();
+            const pageData = Array.isArray(payload?.data) ? payload.data : [];
+            const pagination = payload?.pagination;
+            let addedThisPage = 0;
+            pagesFetched += 1;
+            if (pageData.length === 0) {
+                break;
+            }
+            const pageSignature = pageData.map((item) => item?.id ?? "").join("|");
+            if (pageSignatures.has(pageSignature)) {
+                break;
+            }
+            pageSignatures.add(pageSignature);
+            for (const item of pageData) {
+                if (!isPokemonCard(item)) {
+                    continue;
+                }
+                if (item.id && seen.has(item.id)) {
+                    continue;
+                }
+                if (item.id) {
+                    seen.add(item.id);
+                }
+                collected.push(item);
+                addedThisPage += 1;
+            }
+            lastPageAddedCards = addedThisPage;
+            hasMore = Boolean(pagination?.hasMore);
+            cursor = typeof pagination?.nextCursor === "string" && pagination.nextCursor.length > 0 ? pagination.nextCursor : null;
+            page += 1;
+            await sleep(500);
+        }
+        const data = { data: collected };
+        if (data.data.length > 0) {
+            await writePrismaticEvolutionsCache(data);
+        }
+        ctx.response.status = 200;
+        ctx.response.body = {
+            ...data,
+            meta: {
+                count: data.data.length,
+                mode: "all-from-set",
+                pagesFetched,
+                lastPageAddedCards,
+            },
+        };
+    } catch (error) {
+        console.error("Error fetching pokemon data:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Failed to fetch pokemon data" };
+    }
+});
 const POKEMON_PAGE_SIZE = 20;
 const MAX_SET_PAGES = 500;
 
@@ -186,7 +323,12 @@ function isPokemonCard(item: { name?: string; cardNumber?: string | null }) {
         return false;
     }
 
+    // Allow item cards to show: include cards whose name contains 'item'
     const lowerName = (item.name ?? "").toLowerCase();
+    if (lowerName.includes("item")) {
+        return true;
+    }
+
     return !NON_CARD_TERMS.some((term) => lowerName.includes(term));
 }
 
@@ -372,6 +514,143 @@ router.get("/api/getPokemonJourneyTogether", async (ctx) => {
         const data = { data: collected };
         if (data.data.length > 0) {
             await writeJourneyTogetherCache(data);
+        }
+        ctx.response.status = 200;
+        ctx.response.body = {
+            ...data,
+            meta: {
+                count: data.data.length,
+                mode: "all-from-set",
+                pagesFetched,
+                lastPageAddedCards,
+            },
+        };
+    } catch (error) {
+        console.error("Error fetching pokemon data:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Failed to fetch pokemon data" };
+    }
+});
+
+async function readPokemon151Cache() {
+    try {
+        const raw = await Deno.readTextFile(Pokemon151CacheFile);
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+async function writePokemon151Cache(data: unknown) {
+    await Deno.mkdir(new URL("../public", import.meta.url), { recursive: true });
+    await Deno.writeTextFile(Pokemon151CacheFile, JSON.stringify(data, null, 2));
+}
+
+router.get("/api/getPokemon151", async (ctx) => {
+    const forceRefresh = ctx.request.url.searchParams.get("refresh") === "true";
+    const cachedData = await readPokemon151Cache();
+    const normalizedCachedData = cachedData ? normalizeJourneyTogetherData(cachedData) : null;
+
+    if (!forceRefresh) {
+        if (normalizedCachedData) {
+            ctx.response.status = 200;
+            ctx.response.body = normalizedCachedData;
+            return;
+        }
+    }
+
+    if (!Pokemon_API_KEY) {
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Pokemon API Key is not configured and cache file was not found" };
+        return;
+    }
+
+    try {
+        const collected = [];
+        const seen = new Set();
+        const pageSignatures = new Set();
+        let page = 0;
+        let cursor = null;
+        let hasMore = true;
+        let consecutive429s = 0;
+        let pagesFetched = 0;
+        let lastPageAddedCards = 0;
+
+        while (page < MAX_SET_PAGES && hasMore) {
+            const offset = page * POKEMON_PAGE_SIZE;
+            const cursorPart = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
+            const query = `cards?set=sv-scarlet-and-violet-151&limit=${POKEMON_PAGE_SIZE}&offset=${offset}${cursorPart}`;
+            const response = await fetchCardsPage(query);
+
+            if (response.status === 429) {
+                consecutive429s += 1;
+                const retryAfterHeader = response.headers.get("retry-after");
+                const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+                const waitMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1000 : 1500;
+                if (consecutive429s <= 5) {
+                    await sleep(waitMs);
+                    continue;
+                }
+                if (normalizedCachedData) {
+                    ctx.response.status = 200;
+                    ctx.response.body = {
+                        ...normalizedCachedData,
+                        meta: {
+                            stale: true,
+                            note: "Rate limited by upstream API. Returned cached data.",
+                        },
+                    };
+                    return;
+                }
+                ctx.response.status = 429;
+                ctx.response.body = {
+                    error: "Rate limited by upstream API and no cache is available",
+                };
+                return;
+            }
+            consecutive429s = 0;
+            if (!response.ok) {
+                ctx.response.status = response.status;
+                ctx.response.body = {
+                    error: "Failed to fetch pokemon data from PokeAPI",
+                };
+                return;
+            }
+            const payload = await response.json();
+            const pageData = Array.isArray(payload?.data) ? payload.data : [];
+            const pagination = payload?.pagination;
+            let addedThisPage = 0;
+            pagesFetched += 1;
+            if (pageData.length === 0) {
+                break;
+            }
+            const pageSignature = pageData.map((item) => item?.id ?? "").join("|");
+            if (pageSignatures.has(pageSignature)) {
+                break;
+            }
+            pageSignatures.add(pageSignature);
+            for (const item of pageData) {
+                if (!isPokemonCard(item)) {
+                    continue;
+                }
+                if (item.id && seen.has(item.id)) {
+                    continue;
+                }
+                if (item.id) {
+                    seen.add(item.id);
+                }
+                collected.push(item);
+                addedThisPage += 1;
+            }
+            lastPageAddedCards = addedThisPage;
+            hasMore = Boolean(pagination?.hasMore);
+            cursor = typeof pagination?.nextCursor === "string" && pagination.nextCursor.length > 0 ? pagination.nextCursor : null;
+            page += 1;
+            await sleep(500);
+        }
+        const data = { data: collected };
+        if (data.data.length > 0) {
+            await writePokemon151Cache(data);
         }
         ctx.response.status = 200;
         ctx.response.body = {
