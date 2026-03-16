@@ -9,7 +9,7 @@ interface PokemonData {
     name: string;
     variant: string;
     prices?: {
-        ebay?: {
+        tcgplayer?: {
             NEAR_MINT?: {
                 avg?: number;
             };
@@ -25,7 +25,7 @@ const POKEMON_JOURNEY_TOGETHER_FILE = "/pokemonJourneyTogether.json";
 const POKEMON_JOURNEY_TOGETHER_ENDPOINT = "/api/getPokemonJourneyTogether";
 
 function getPrice(card: PokemonData): number {
-    return card.prices?.ebay?.NEAR_MINT?.avg ?? 0;
+    return card.prices?.tcgplayer?.NEAR_MINT?.avg ?? 0;
 }
 
 function formatVariantName(variant: string): string {

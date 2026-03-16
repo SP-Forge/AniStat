@@ -9,7 +9,7 @@ interface PokemonData {
     name: string;
     variant: string;
     prices?: {
-        ebay?: {
+        tcgplayer?: {
             NEAR_MINT?: {
                 avg?: number;
             };
@@ -21,11 +21,15 @@ interface PokemonResponse {
     data: PokemonData[];
 }
 
-const POKEMON_PRISMATIC_EVOLUTIONS_FILE = "/pokemonPrismaticEvolutions.json";
-const POKEMON_PRISMATIC_EVOLUTIONS_ENDPOINT = "/api/getPokemonPrismaticEvolutions";
+const POKEMON_JOURNEY_TOGETHER_FILE = "/pokemon151.json";
+const POKEMON_JOURNEY_TOGETHER_ENDPOINT = "/api/getPokemon11";
 
 function getPrice(card: PokemonData): number {
-    return card.prices?.ebay?.NEAR_MINT?.avg ?? 0;
+    return card.prices?.tcgplayer?.NEAR_MINT?.avg ?? 0;
+}
+
+function formatVariantName(variant: string): string {
+    return variant.replaceAll("_", " ");
 }
 
 export default function PokemonGame() {
@@ -48,17 +52,13 @@ export default function PokemonGame() {
         return new Promise((res) => setTimeout(res, delay));
     }
 
-    function formatVariantName(variant: string): string {
-        return variant.replaceAll("_", " ");
-    }
-
     async function ensurePokemonPool(): Promise<PokemonData[]> {
         if (pokemonPoolRef.current.length > 0) {
             return pokemonPoolRef.current;
         }
 
         try {
-            const fileResponse = await fetch(POKEMON_PRISMATIC_EVOLUTIONS_FILE);
+            const fileResponse = await fetch(POKEMON_JOURNEY_TOGETHER_FILE);
             if (fileResponse.ok) {
                 const payload = (await fileResponse.json()) as PokemonResponse;
                 if (payload.data && payload.data.length > 0) {
@@ -70,7 +70,7 @@ export default function PokemonGame() {
             // Fall through to API fallback.
         }
 
-        const apiResponse = await fetch(POKEMON_PRISMATIC_EVOLUTIONS_ENDPOINT);
+        const apiResponse = await fetch(POKEMON_JOURNEY_TOGETHER_ENDPOINT);
         if (!apiResponse.ok) {
             return [];
         }
