@@ -39,31 +39,24 @@ export default function GamePage() {
 
     async function fetchAnime(excludeIds: number[] = []): Promise<PopularAnimeItem | null> {
         try {
-            // Fetch the popular anime list from API
-            const response = await fetch(`/api/GetTVAnimes`);
-
+            // Fetch the popular anime list from local JSON file
+            const response = await fetch("/tvAnimes.json");
             if (!response.ok) {
                 console.log("Failed to fetch anime list, retrying...");
                 return fetchAnime(excludeIds); // Retry
             }
-
             const data = await response.json();
-
             if (!data.data || data.data.length === 0) {
                 console.error("No anime data received");
                 return null;
             }
-
             // Filter out excluded anime IDs
             const availableAnime = data.data.filter((item: PopularAnimeItem) => !excludeIds.includes(item.node.id));
-
             // If no anime available after filtering, return any random one
             const animeList = availableAnime.length > 0 ? availableAnime : data.data;
-
             // Pick a random anime from the list
             const randomIndex = Math.floor(Math.random() * animeList.length);
             const selectedAnime = animeList[randomIndex];
-
             return selectedAnime;
         } catch (error) {
             console.error("Error fetching anime:", error);
