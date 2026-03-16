@@ -1,4 +1,5 @@
 /// <reference lib="deno.ns" />
+// deno-lint-ignore-file no-import-prefix no-explicit-any
 
 import { Application, Router } from "@oak/oak";
 import { oakCors } from "@tajpouria/cors";
@@ -13,6 +14,7 @@ const router = new Router();
 
 // AniStat API
 
+/*
 const databaseUrl = Deno.env.get("CONNECTION_STRING")!;
 const sql = neon(databaseUrl);
 
@@ -29,10 +31,13 @@ try {
     console.error(error);
 }
 
+*/
+
 router.get("/api/", (res) => {
     res.response.body = "Hello world!";
 });
 
+/*
 router.post("/api/login", async (ctx) => {
     try {
         const value = await ctx.request.body.json();
@@ -99,6 +104,8 @@ router.post("/api/register", async (ctx) => {
         ctx.response.body = { error: "Invalid request body", details: err?.message ?? err };
     }
 });
+
+*/
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
