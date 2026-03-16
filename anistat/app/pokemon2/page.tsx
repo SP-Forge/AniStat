@@ -7,6 +7,7 @@ interface PokemonData {
     id: number;
     image: string;
     name: string;
+    variant: string;
     prices?: {
         ebay?: {
             NEAR_MINT?: {
@@ -25,6 +26,10 @@ const POKEMON_JOURNEY_TOGETHER_ENDPOINT = "/api/getPokemon151";
 
 function getPrice(card: PokemonData): number {
     return card.prices?.ebay?.NEAR_MINT?.avg ?? 0;
+}
+
+function formatVariantName(variant: string): string {
+    return variant.replaceAll("_", " ");
 }
 
 export default function PokemonGame() {
@@ -199,10 +204,10 @@ export default function PokemonGame() {
                     <motion.div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
                         <motion.div className="absolute w-1/2 h-full flex flex-col items-center justify-end p-8" initial={{ right: 0 }} animate={{ right: "50%" }} transition={{ duration: 0.8, ease: "easeInOut" }}>
                             <img src={animatingPokemon.image} alt={animatingPokemon.name} className="absolute inset-0 w-full h-full blur-lg select-none" draggable="false" />
-                            <img src={animatingPokemon.image} alt={animatingPokemon.name} className="relative inset-0 h-full object-cover object-center m-25 rounded-xl select-none" draggable="false" />
+                            <img src={animatingPokemon.image} alt={animatingPokemon.name} className="relative inset-0 h-full object-cover object-center m-25 rounded-3xl select-none" draggable="false" />
                             <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
                                 <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
-                                    {animatingPokemon.name} - ${getPrice(animatingPokemon).toFixed(2)}
+                                    {animatingPokemon.name} ({formatVariantName(animatingPokemon.variant)}) - ${getPrice(animatingPokemon).toFixed(2)}
                                 </h2>
                             </div>
                         </motion.div>
@@ -214,10 +219,10 @@ export default function PokemonGame() {
                 {leftPokemon && (
                     <>
                         <img src={leftPokemon.image} alt={leftPokemon.name} className="absolute inset-0 w-full h-full blur-lg select-none" draggable="false" />
-                        <img src={leftPokemon.image} alt={leftPokemon.name} className={`relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-xl cursor-pointer select-none transition-all ${leftBorderColor}`} draggable="false" onClick={() => handleGuess("left")} />
+                        <img src={leftPokemon.image} alt={leftPokemon.name} className={`relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-3xl cursor-pointer select-none transition-all ${leftBorderColor}`} draggable="false" onClick={() => handleGuess("left")} />
                         <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
                             <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
-                                {leftPokemon.name} - ${getPrice(leftPokemon).toFixed(2)}
+                                {leftPokemon.name} ({formatVariantName(leftPokemon.variant)}) - ${getPrice(leftPokemon).toFixed(2)}
                             </h2>
                         </div>
                     </>
@@ -228,11 +233,10 @@ export default function PokemonGame() {
                 {rightPokemon && (
                     <>
                         <img src={rightPokemon.image} alt={rightPokemon.name} className="absolute inset-0 w-full h-full blur-lg select-none" draggable="false" />
-                        <img src={rightPokemon.image} alt={rightPokemon.name} className={`relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-xl cursor-pointer select-none transition-all ${rightBorderColor}`} draggable="false" onClick={() => handleGuess("right")} />
+                        <img src={rightPokemon.image} alt={rightPokemon.name} className={`relative inset-0 h-full object-cover object-center hover:brightness-75 m-25 rounded-3xl cursor-pointer select-none transition-all ${rightBorderColor}`} draggable="false" onClick={() => handleGuess("right")} />
                         <div className="relative inline-block skew-x-[-15deg] bg-linear-to-r from-black2 to-black1 px-8 py-4 rounded-md">
                             <h2 className="relative z-10 text-4xl font-bold mb-4 text-white drop-shadow-lg inline-block skew-x-15deg">
-                                {rightPokemon.name}
-                                {showRightPrice ? ` - $${getPrice(rightPokemon).toFixed(2)}` : ""}
+                                {rightPokemon.name} ({formatVariantName(rightPokemon.variant)}){showRightPrice ? ` - $${getPrice(rightPokemon).toFixed(2)}` : ""}
                             </h2>
                         </div>
                     </>

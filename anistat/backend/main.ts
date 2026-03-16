@@ -13,10 +13,59 @@ if (!CLIENT_ID) {
     console.log("CLIENT_ID environment variable is not set");
 }
 
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+// AniStat API
+
 router.get("/api/", (res) => {
     res.response.body = "Hello world!";
 });
 
+router.post("/api/login", async (ctx) => {
+    try {
+        const value = await ctx.request.body.json();
+
+        if (!value.username || !value.password) {
+            ctx.response.status = 401;
+            ctx.response.body = { error: "Invalid username or password" };
+            return;
+        }
+
+        console.log("Login request body:", value);
+        ctx.response.status = 200;
+        ctx.response.body = { message: "Login received", data: value };
+    } catch (err: any) {
+        ctx.response.status = 400;
+        ctx.response.body = { error: "Invalid request body", details: err?.message ?? err };
+    }
+});
+
+router.post("/api/register", async (ctx) => {
+    try {
+        const value = await ctx.request.body.json();
+
+        console.log(value);
+
+        if (!value.username || !value.password) {
+            ctx.response.status = 400;
+            ctx.response.body = { error: "Username and password are required" };
+            return;
+        }
+
+        console.log("Register request body:", value);
+        ctx.response.status = 200;
+        ctx.response.body = { message: "Register received", data: value };
+    } catch (err: any) {
+        ctx.response.status = 400;
+        ctx.response.body = { error: "Invalid request body", details: err?.message ?? err };
+    }
+});
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+// Anime API
 router.get("/api/getAnimeById/:id", async (ctx) => {
     const id = ctx.params.id;
 
@@ -254,7 +303,7 @@ router.get("/api/getPokemonPrismaticEvolutions", async (ctx) => {
             if (pageData.length === 0) {
                 break;
             }
-            const pageSignature = pageData.map((item) => item?.id ?? "").join("|");
+            const pageSignature = pageData.map((item: { id: any }) => item?.id ?? "").join("|");
             if (pageSignatures.has(pageSignature)) {
                 break;
             }
@@ -301,21 +350,7 @@ router.get("/api/getPokemonPrismaticEvolutions", async (ctx) => {
 const POKEMON_PAGE_SIZE = 20;
 const MAX_SET_PAGES = 500;
 
-const NON_CARD_TERMS = [
-    "blister",
-    "box",
-    "bundle",
-    "pack",
-    "tin",
-    "case",
-    "deck",
-    "collection",
-    "trainer kit",
-    "build & battle",
-    "sleeved",
-    "checklane",
-    "booster",
-];
+const NON_CARD_TERMS = ["blister", "box", "bundle", "pack", "tin", "case", "deck", "collection", "trainer kit", "build & battle", "sleeved", "checklane", "booster"];
 
 function isPokemonCard(item: { name?: string; cardNumber?: string | null }) {
     const hasCardNumber = typeof item.cardNumber === "string" && item.cardNumber.trim().length > 0;
@@ -351,7 +386,6 @@ function normalizeJourneyTogetherData(payload: { data?: Array<{ id?: string; nam
         }
 
         filtered.push(item);
-
     }
 
     return { ...payload, data: filtered };
@@ -477,7 +511,7 @@ router.get("/api/getPokemonJourneyTogether", async (ctx) => {
             }
 
             // Detect repeated raw pages in case upstream ignores offset.
-            const pageSignature = pageData.map((item) => item?.id ?? "").join("|");
+            const pageSignature = pageData.map((item: { id: any }) => item?.id ?? "").join("|");
             if (pageSignatures.has(pageSignature)) {
                 break;
             }
@@ -624,7 +658,7 @@ router.get("/api/getPokemon151", async (ctx) => {
             if (pageData.length === 0) {
                 break;
             }
-            const pageSignature = pageData.map((item) => item?.id ?? "").join("|");
+            const pageSignature = pageData.map((item: { id: any }) => item?.id ?? "").join("|");
             if (pageSignatures.has(pageSignature)) {
                 break;
             }
@@ -668,8 +702,6 @@ router.get("/api/getPokemon151", async (ctx) => {
         ctx.response.body = { error: "Failed to fetch pokemon data" };
     }
 });
-
-
 
 app.use(oakCors());
 app.use(router.routes());
