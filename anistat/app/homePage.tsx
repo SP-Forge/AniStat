@@ -83,7 +83,7 @@ export default function Page() {
         let guessedCorrectly = false;
 
         if (rightAnime.node.mean && leftAnime.node.mean) {
-            const rightIsHigher = rightAnime.node.mean > leftAnime.node.mean;
+            const rightIsHigher = rightAnime.node.mean >= leftAnime.node.mean;
 
             // User guessed right if they clicked the side with higher score
             if (clickedSide === "right" && rightIsHigher) {

@@ -84,7 +84,7 @@ export default function GamePage() {
         let guessedCorrectly = false;
 
         if (rightAnime.node.mean && leftAnime.node.mean) {
-            const rightIsHigher = rightAnime.node.mean > leftAnime.node.mean;
+            const rightIsHigher = rightAnime.node.mean >= leftAnime.node.mean;
 
             // User guessed right if they clicked the side with higher score
             if (clickedSide === "right" && rightIsHigher) {
@@ -210,7 +210,6 @@ export default function GamePage() {
 
     return (
         <main className="flex h-screen relative overflow-hidden">
-           
             {/* Animating Anime Overlay */}
             <AnimatePresence>
                 {animatingAnime && (
