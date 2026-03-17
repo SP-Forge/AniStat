@@ -1,10 +1,19 @@
+import type { Room, Player } from "./PokemonGameBackend/type.ts";
+// Broadcast helper for WebSocket game
+function broadcast(room: Room, data: unknown) {
+    for (const p of room.players) {
+        p.socket.send(JSON.stringify(data));
+    }
+}
 /// <reference lib="deno.ns" />
-// deno-lint-ignore-file no-import-prefix no-explicit-any
+// deno-lint-ignore-file no-explicit-any
 
 import { Application, Router } from "@oak/oak";
 import { oakCors } from "@tajpouria/cors";
-import { neon } from "@neon/serverless";
-import { hash, verify } from "jsr:@denorg/scrypt@4.4.4";
+// import { neon } from "@neon/serverless";
+// import { hash, verify } from "jsr:@denorg/scrypt@4.4.4";
+import { createRoom, joinRoom } from "./PokemonGameBackend/roomManager.ts";
+import { playCard, startGame } from "./PokemonGameBackend/game.ts";
 
 export const app = new Application();
 const router = new Router();
@@ -760,10 +769,76 @@ app.use(oakCors());
 app.use(router.routes());
 app.use(router.allowedMethods());
 
+
 if (import.meta.main) {
     const port = Number(Deno.env.get("BACKEND_PORT") ?? "3333");
     const hostname = "0.0.0.0";
-
     console.log(`Server listening on http://${hostname}:${port}`);
-    await app.listen({ hostname, port });
+
+    Deno.serve({ port }, async (req: Request): Promise<Response> => {
+        // WebSocket upgrade for game
+        if (req.headers.get("upgrade") === "websocket") {
+            const { socket, response } = Deno.upgradeWebSocket(req);
+            const playerId = crypto.randomUUID();
+            let currentRoom: Room | null = null;
+
+            socket.onmessage = (event: MessageEvent) => {
+                const msg = JSON.parse(event.data);
+
+                if (msg.type === "createRoom") {
+                    currentRoom = createRoom({
+                        id: playerId,
+                        socket,
+                        hand: [],
+                        score: 0
+                    });
+                    socket.send(JSON.stringify({ type: "roomCreated", roomId: currentRoom.id }));
+                }
+
+                if (msg.type === "joinRoom") {
+                    currentRoom = joinRoom(msg.roomId, {
+                        id: playerId,
+                        socket,
+                        hand: [],
+                        score: 0
+                    });
+                    if (currentRoom) {
+                        broadcast(currentRoom, {
+                            type: "playerJoined",
+                            players: currentRoom.players.map((p: Player) => ({ id: p.id, hand: p.hand }))
+                        });
+                    }
+                    if (currentRoom?.players.length === 2) {
+                        broadcast(currentRoom, {
+                            type: "gameStart",
+                            players: currentRoom.players.map((p: Player) => ({ id: p.id, hand: p.hand }))
+                        });
+                    }
+                }
+
+                if (msg.type === "startGame") {
+                    if (currentRoom && currentRoom.players.length === 2) {
+                        startGame(currentRoom);
+                        broadcast(currentRoom, {
+                            type: "gameStart",
+                            players: currentRoom.players.map((p: Player) => ({ id: p.id, hand: p.hand }))
+                        });
+                    }
+                }
+
+                if (msg.type === "playCard") {
+                    if (currentRoom) {
+                        const result = playCard(currentRoom, playerId, msg.cardId);
+                        if (result) broadcast(currentRoom, result);
+                    }
+                }
+            };
+
+            return response;
+        }
+
+        // Otherwise, handle HTTP API with Oak
+        const resp = await app.handle(req);
+        return resp ?? new Response("Not Found", { status: 404 });
+    });
 }

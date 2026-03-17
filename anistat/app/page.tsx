@@ -47,6 +47,7 @@ export default function HomePage() {
                     Pokemon
                 </div>
 
+
                 <div className="flex flex-wrap justify-center gap-6 w-full">
                     <Link href="/Pokemon/JourneyTogether" className="w-62 rounded-xl border border-red1/60 bg-black1/85 shadow-lg overflow-hidden hover:scale-105 transition-transform">
                         <img className="w-full h-80 object-cover" src="/pokemon1.png" alt="Play pokemon guessing game" />
@@ -62,7 +63,14 @@ export default function HomePage() {
                         <img className="w-full h-80 object-cover" src="/prismatic.png" alt="Play TV pokemon guessing game" />
                         <div className="px-3 py-2 text-center text-xl font-bold text-white/90">Prismatic Evolutions</div>
                     </Link>
+                </div>
 
+                {/* Pokémon Card Battle lobby link */}
+                <div className="flex justify-center mt-8">
+                    <Link href="/PokemonGameFrontend" className="w-62 rounded-xl border border-yellow-400 bg-black1/85 shadow-lg overflow-hidden hover:scale-105 transition-transform flex flex-col items-center">
+                        <img className="w-full h-80 object-cover" src="/cardbattle.png" alt="Pokémon Card Battle Lobby" />
+                        <div className="px-3 py-2 text-center text-xl font-bold text-yellow-300">Pokémon Card Battle Lobby</div>
+                    </Link>
                 </div>
 
                     <h1 className="font-bold text-2xl text-white mt-8">
