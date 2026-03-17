@@ -1,1 +1,1 @@
-export const socket = new WebSocket("ws://localhost:3333")
+export const socket = new WebSocket("ws://0.0.0.0:3333");
