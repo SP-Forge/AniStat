@@ -1,1 +1,1 @@
-export const socket = new WebSocket("wss://anistat.mercantec.tech");
+export const socket = new WebSocket("wss://0.0.0.0:3333");
