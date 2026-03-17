@@ -1,1 +1,3 @@
-export const socket = new WebSocket("wss://0.0.0.0:3333");
+const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+const host = window.location.host;
+export const socket = new WebSocket(`${protocol}://${host}`);
