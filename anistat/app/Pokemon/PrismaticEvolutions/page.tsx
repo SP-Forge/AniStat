@@ -43,6 +43,7 @@ export default function PokemonGame() {
     const [rightBorderColor, setRightBorderColor] = useState("");
     const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pokemonPoolRef = useRef<PokemonData[]>([]);
+    const guessLockedRef = useRef(false);
 
     function timeout(delay: number) {
         return new Promise((res) => setTimeout(res, delay));
@@ -113,70 +114,76 @@ export default function PokemonGame() {
     }
 
     async function handleGuess(clickedSide: "left" | "right") {
-        if (!leftPokemon || !rightPokemon || isAnimating) {
+        if (!leftPokemon || !rightPokemon || isAnimating || guessLockedRef.current) {
             return;
         }
 
-        setShowRightPrice(true);
-        await timeout(1000);
+        guessLockedRef.current = true;
 
-        const leftPrice = getPrice(leftPokemon);
-        const rightPrice = getPrice(rightPokemon);
-        const rightIsHigher = rightPrice >= leftPrice;
-        const guessedCorrectly = (clickedSide === "right" && rightIsHigher) || (clickedSide === "left" && !rightIsHigher);
+        try {
+            setShowRightPrice(true);
+            await timeout(1000);
 
-        if (guessedCorrectly) {
-            if (clickedSide === "left") {
-                setLeftBorderColor("border-4 border-green-500");
-            } else {
-                setRightBorderColor("border-4 border-green-500");
-            }
+            const leftPrice = getPrice(leftPokemon);
+            const rightPrice = getPrice(rightPokemon);
+            const rightIsHigher = rightPrice >= leftPrice;
+            const guessedCorrectly = (clickedSide === "right" && rightIsHigher) || (clickedSide === "left" && !rightIsHigher);
 
-            await timeout(800);
-            setScore((prev) => prev + 1);
-
-            if (rightIsHigher) {
-                await animationFromRightPokemonToLeftPokemon(rightPokemon);
-                setLeftPokemon(rightPokemon);
-                setConsecutiveWins(0);
-            } else {
-                const newWins = consecutiveWins + 1;
-                setConsecutiveWins(newWins);
-
-                if (newWins >= 2) {
-                    const excludeIds = [leftPokemon.id, rightPokemon.id];
-                    const newLeft = await fetchPokemon(excludeIds);
-
-                    if (newLeft) {
-                        setRightPokemon(newLeft);
-                        await timeout(200);
-                        await animationFromRightPokemonToLeftPokemon(newLeft);
-                        setLeftPokemon(newLeft);
-                    }
-                    setConsecutiveWins(0);
+            if (guessedCorrectly) {
+                if (clickedSide === "left") {
+                    setLeftBorderColor("border-4 border-green-500");
+                } else {
+                    setRightBorderColor("border-4 border-green-500");
                 }
-            }
-        } else {
-            if (clickedSide === "left") {
-                setLeftBorderColor("border-4 border-red-500");
+
+                await timeout(800);
+                setScore((prev) => prev + 1);
+
+                if (rightIsHigher) {
+                    await animationFromRightPokemonToLeftPokemon(rightPokemon);
+                    setLeftPokemon(rightPokemon);
+                    setConsecutiveWins(0);
+                } else {
+                    const newWins = consecutiveWins + 1;
+                    setConsecutiveWins(newWins);
+
+                    if (newWins >= 2) {
+                        const excludeIds = [leftPokemon.id, rightPokemon.id];
+                        const newLeft = await fetchPokemon(excludeIds);
+
+                        if (newLeft) {
+                            setRightPokemon(newLeft);
+                            await timeout(200);
+                            await animationFromRightPokemonToLeftPokemon(newLeft);
+                            setLeftPokemon(newLeft);
+                        }
+                        setConsecutiveWins(0);
+                    }
+                }
             } else {
-                setRightBorderColor("border-4 border-red-500");
+                if (clickedSide === "left") {
+                    setLeftBorderColor("border-4 border-red-500");
+                } else {
+                    setRightBorderColor("border-4 border-red-500");
+                }
+
+                await timeout(800);
+                setShowModal(true);
+                setConsecutiveWins(0);
             }
 
-            await timeout(800);
-            setShowModal(true);
-            setConsecutiveWins(0);
-        }
+            const excludeIds = leftPokemon ? [leftPokemon.id] : [];
+            const newRight = await fetchPokemon(excludeIds);
+            if (newRight) {
+                setRightPokemon(newRight);
+            }
 
-        const excludeIds = leftPokemon ? [leftPokemon.id] : [];
-        const newRight = await fetchPokemon(excludeIds);
-        if (newRight) {
-            setRightPokemon(newRight);
+            setLeftBorderColor("");
+            setRightBorderColor("");
+            setShowRightPrice(false);
+        } finally {
+            guessLockedRef.current = false;
         }
-
-        setLeftBorderColor("");
-        setRightBorderColor("");
-        setShowRightPrice(false);
     }
 
     function handleVsClick() {

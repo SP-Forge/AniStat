@@ -36,6 +36,7 @@ export default function Page() {
     const [consecutiveWins, setConsecutiveWins] = useState(0);
     const [leftBorderColor, setLeftBorderColor] = useState("");
     const [rightBorderColor, setRightBorderColor] = useState("");
+    const guessLockedRef = useRef(false);
 
     async function fetchAnime(excludeIds: number[] = []): Promise<PopularAnimeItem | null> {
         try {
@@ -72,90 +73,96 @@ export default function Page() {
     }
 
     async function handleGuess(clickedSide: "left" | "right") {
-        if (!leftAnime || !rightAnime || isAnimating) return;
+        if (!leftAnime || !rightAnime || isAnimating || guessLockedRef.current) return;
 
-        // Show the right anime's mean
-        setShowRightMean(true);
+        guessLockedRef.current = true;
 
-        await timeout(1000); // Wait to let user see the scores
+        try {
+            // Show the right anime's mean
+            setShowRightMean(true);
 
-        // Determine if the guess was correct
-        let guessedCorrectly = false;
+            await timeout(1000); // Wait to let user see the scores
 
-        if (rightAnime.node.mean && leftAnime.node.mean) {
-            const rightIsHigher = rightAnime.node.mean >= leftAnime.node.mean;
+            // Determine if the guess was correct
+            let guessedCorrectly = false;
 
-            // User guessed right if they clicked the side with higher score
-            if (clickedSide === "right" && rightIsHigher) {
-                guessedCorrectly = true;
-            } else if (clickedSide === "left" && !rightIsHigher) {
-                guessedCorrectly = true;
-            }
+            if (rightAnime.node.mean && leftAnime.node.mean) {
+                const rightIsHigher = rightAnime.node.mean >= leftAnime.node.mean;
 
-            if (guessedCorrectly) {
-                // Show green border on correct choice
-                if (clickedSide === "left") {
-                    setLeftBorderColor("border-4 border-green-500");
-                } else {
-                    setRightBorderColor("border-4 border-green-500");
+                // User guessed right if they clicked the side with higher score
+                if (clickedSide === "right" && rightIsHigher) {
+                    guessedCorrectly = true;
+                } else if (clickedSide === "left" && !rightIsHigher) {
+                    guessedCorrectly = true;
                 }
 
-                await timeout(800); // Show feedback
-                setScore(score + 1);
-
-                if (rightIsHigher) {
-                    // Right anime won - animate it sliding to the left
-                    await animationFromRightAnimeToLeftAnime(rightAnime);
-                    setLeftAnime(rightAnime);
-                    setConsecutiveWins(0); // Reset counter when right anime wins
-                } else {
-                    // Left anime won - it stays on the left
-                    const newWins = consecutiveWins + 1;
-                    setConsecutiveWins(newWins);
-
-                    // If left anime won 2 times in a row, replace it with a new anime
-                    if (newWins >= 2) {
-                        // First, fetch the new anime completely
-                        const excludeIds = [leftAnime.node.id, rightAnime.node.id];
-                        const newLeft = await fetchAnime(excludeIds);
-
-                        if (newLeft) {
-                            // Once loaded, place it on the right side
-                            setRightAnime(newLeft);
-                            await timeout(200); // Wait for state to update and render
-
-                            // Now animate the new anime sliding from right to left
-                            await animationFromRightAnimeToLeftAnime(newLeft);
-                            setLeftAnime(newLeft);
-                        }
-                        setConsecutiveWins(0);
+                if (guessedCorrectly) {
+                    // Show green border on correct choice
+                    if (clickedSide === "left") {
+                        setLeftBorderColor("border-4 border-green-500");
+                    } else {
+                        setRightBorderColor("border-4 border-green-500");
                     }
-                }
-            } else {
-                // Show red border on incorrect choice
-                if (clickedSide === "left") {
-                    setLeftBorderColor("border-4 border-red-500");
+
+                    await timeout(800); // Show feedback
+                    setScore((prev) => prev + 1);
+
+                    if (rightIsHigher) {
+                        // Right anime won - animate it sliding to the left
+                        await animationFromRightAnimeToLeftAnime(rightAnime);
+                        setLeftAnime(rightAnime);
+                        setConsecutiveWins(0); // Reset counter when right anime wins
+                    } else {
+                        // Left anime won - it stays on the left
+                        const newWins = consecutiveWins + 1;
+                        setConsecutiveWins(newWins);
+
+                        // If left anime won 2 times in a row, replace it with a new anime
+                        if (newWins >= 2) {
+                            // First, fetch the new anime completely
+                            const excludeIds = [leftAnime.node.id, rightAnime.node.id];
+                            const newLeft = await fetchAnime(excludeIds);
+
+                            if (newLeft) {
+                                // Once loaded, place it on the right side
+                                setRightAnime(newLeft);
+                                await timeout(200); // Wait for state to update and render
+
+                                // Now animate the new anime sliding from right to left
+                                await animationFromRightAnimeToLeftAnime(newLeft);
+                                setLeftAnime(newLeft);
+                            }
+                            setConsecutiveWins(0);
+                        }
+                    }
                 } else {
-                    setRightBorderColor("border-4 border-red-500");
+                    // Show red border on incorrect choice
+                    if (clickedSide === "left") {
+                        setLeftBorderColor("border-4 border-red-500");
+                    } else {
+                        setRightBorderColor("border-4 border-red-500");
+                    }
+
+                    await timeout(800); // Show feedback
+
+                    // Show modal for wrong guess
+                    setShowModal(true);
+                    setConsecutiveWins(0); // Reset on loss
                 }
-
-                await timeout(800); // Show feedback
-
-                // Show modal for wrong guess
-                setShowModal(true);
-                setConsecutiveWins(0); // Reset on loss
             }
+
+            // Get new anime for right side (exclude the winner that's now on left)
+            const excludeIds = leftAnime ? [leftAnime.node.id] : [];
+            const newRight = await fetchAnime(excludeIds);
+            if (newRight) setRightAnime(newRight);
+
+            // Reset borders and mean visibility
+            setLeftBorderColor("");
+            setRightBorderColor("");
+            setShowRightMean(false);
+        } finally {
+            guessLockedRef.current = false;
         }
-
-        // Get new anime for right side (exclude the winner that's now on left)
-        const excludeIds = leftAnime ? [leftAnime.node.id] : [];
-        const newRight = await fetchAnime(excludeIds);
-        if (newRight) setRightAnime(newRight);
-
-        // Reset borders and mean visibility
-        setLeftBorderColor("");
-        setRightBorderColor("");
-        setShowRightMean(false);
     }
 
     function handleVsClick() {
