@@ -33,6 +33,13 @@ export default function App() {
 
       if (msg.type === "playerJoined") {
         setPlayers(msg.players);
+        if (!roomId && msg.players.length > 0) {
+          // Set roomId for the joined player if not already set
+          setRoomId(msg.players[0].id);
+        }
+        if (page !== "lobby") {
+          setPage("lobby");
+        }
       }
 
       if (msg.type === "roundResult") {
