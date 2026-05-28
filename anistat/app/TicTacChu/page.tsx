@@ -151,7 +151,7 @@ export default function Game() {
       setPendingGuess(pokemon);
       setPendingIndex(index);
       setGuess('');
-      setGuessMessage(`Type the name of ${pokemon.name} to place ${xIsNext ? 'X' : 'O'}.`);
+      setGuessMessage(`Type the name of the pokemon to place ${xIsNext ? 'X' : 'O'}.`);
     } finally {
       setIsRevealing(false);
     }
