@@ -14,6 +14,7 @@ import { oakCors } from "@tajpouria/cors";
 // import { hash, verify } from "jsr:@denorg/scrypt@4.4.4";
 import { createRoom, joinRoom } from "./PokemonGameBackend/roomManager.ts";
 import { playCard, startGame } from "./PokemonGameBackend/game.ts";
+import { getRandomPokemon } from "./TicTacChu_Backend/TicTacChu.ts";
 
 export const app = new Application();
 const router = new Router();
@@ -44,6 +45,16 @@ try {
 
 router.get("/api/", (res) => {
     res.response.body = "Hello world!";
+});
+
+router.get("/api/getRandomPokemon", (ctx) => {
+    const [name, image] = getRandomPokemon();
+
+    ctx.response.status = 200;
+    ctx.response.body = {
+        name,
+        image,
+    };
 });
 
 /*
@@ -365,7 +376,7 @@ router.get("/api/getPokemonPrismaticEvolutions", async (ctx) => {
             if (pageData.length === 0) {
                 break;
             }
-            const pageSignature = pageData.map((item: { id: any }) => item?.id ?? "").join("|");
+            const pageSignature = pageData.map((item: { id?: string | number }) => item?.id ?? "").join("|");
             if (pageSignatures.has(pageSignature)) {
                 break;
             }
@@ -573,7 +584,7 @@ router.get("/api/getPokemonJourneyTogether", async (ctx) => {
             }
 
             // Detect repeated raw pages in case upstream ignores offset.
-            const pageSignature = pageData.map((item: { id: any }) => item?.id ?? "").join("|");
+            const pageSignature = pageData.map((item: { id?: string | number }) => item?.id ?? "").join("|");
             if (pageSignatures.has(pageSignature)) {
                 break;
             }
@@ -720,7 +731,7 @@ router.get("/api/getPokemon151", async (ctx) => {
             if (pageData.length === 0) {
                 break;
             }
-            const pageSignature = pageData.map((item: { id: any }) => item?.id ?? "").join("|");
+            const pageSignature = pageData.map((item: { id?: string | number }) => item?.id ?? "").join("|");
             if (pageSignatures.has(pageSignature)) {
                 break;
             }
